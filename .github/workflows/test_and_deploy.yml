@@ -1,0 +1,26 @@
+name: Test Hire Out Server Application
+
+on:
+  push:
+    branches:
+      - master  # Adjust to match your main branch name
+
+jobs:
+  test:
+    name: Test Spring Boot Application
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+
+      - name: Change spring.profiles.active to test
+        run: sed -i 's/spring\.profiles\.active=.*/spring\.profiles\.active=test/' path/to/application.properties
+
+      - name: Build and test Spring Boot application
+        run: ./gradlew test
