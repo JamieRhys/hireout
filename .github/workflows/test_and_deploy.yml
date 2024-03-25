@@ -21,7 +21,7 @@ jobs:
           distribution: 'adopt'
 
       - name: Change spring.profiles.active to test
-        run: sed -i 's/spring\.profiles\.active=.*/spring\.profiles\.active=test/' path/to/application.properties
+        run: sed -i 's/spring\.profiles\.active=.*/spring\.profiles\.active=test/' src/main/resources/application.properties
 
       - name: Build and test Spring Boot application
         run: ./gradlew test
