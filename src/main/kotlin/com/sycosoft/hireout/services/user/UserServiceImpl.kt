@@ -4,6 +4,10 @@ import com.sycosoft.hireout.database.entities.User
 import com.sycosoft.hireout.database.repository.UserRepository
 import com.sycosoft.hireout.database.result.DatabaseResult
 import com.sycosoft.hireout.database.result.ResultCode
+import jakarta.persistence.PersistenceException
+import org.hibernate.StaleStateException
+import org.hibernate.exception.ConstraintViolationException
+import org.hibernate.exception.LockAcquisitionException
 import org.springframework.dao.ConcurrencyFailureException
 import org.springframework.dao.DataAccessException
 import org.springframework.dao.DataIntegrityViolationException
@@ -171,7 +175,32 @@ class UserServiceImpl(
                 )
             }
 
-        } catch(exception: Exception) {
+        } catch(exception: DataAccessException) {
+            DatabaseResult(
+                code = ResultCode.UPDATE_FAILURE,
+                errorMessage = exception.message.toString()
+            )
+        } catch (exception: OptimisticLockingFailureException) {
+            DatabaseResult(
+                code = ResultCode.UPDATE_FAILURE,
+                errorMessage = exception.message.toString()
+            )
+        } catch (exception: StaleStateException) {
+            DatabaseResult(
+                code = ResultCode.UPDATE_FAILURE,
+                errorMessage = exception.message.toString()
+            )
+        } catch (exception: PersistenceException) {
+            DatabaseResult(
+                code = ResultCode.UPDATE_FAILURE,
+                errorMessage = exception.message.toString()
+            )
+        } catch (exception: LockAcquisitionException) {
+            DatabaseResult(
+                code = ResultCode.UPDATE_FAILURE,
+                errorMessage = exception.message.toString()
+            )
+        } catch (exception: ConstraintViolationException) {
             DatabaseResult(
                 code = ResultCode.UPDATE_FAILURE,
                 errorMessage = exception.message.toString()

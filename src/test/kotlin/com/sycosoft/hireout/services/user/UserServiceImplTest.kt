@@ -4,19 +4,22 @@ import com.sycosoft.hireout.TestStrings
 import com.sycosoft.hireout.database.entities.User
 import com.sycosoft.hireout.database.repository.UserRepository
 import com.sycosoft.hireout.database.result.ResultCode
+import jakarta.persistence.PersistenceException
+import org.hibernate.StaleStateException
+import org.hibernate.exception.ConstraintViolationException
+import org.hibernate.exception.LockAcquisitionException
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mockito
-import org.mockito.MockitoAnnotations
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.dao.OptimisticLockingFailureException
 import java.util.*
 
 @SpringBootTest
@@ -533,6 +536,65 @@ class UserServiceImplTest {
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
         assertEquals(UserService.ErrorMessages.NOTHING_TO_UPDATE, savedUser.errorMessage)
+    }
+
+//endregion
+//region Exception Tests
+
+    @Test
+    fun givenDataAccessExceptionThrown_whenUpdating_thenReturnFailureResult() {
+        val test = user.copy(firstName = TestStrings.USER_FIRST_NAME_VALID_UPDATE)
+        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(repository.save(test)).thenThrow(DataIntegrityViolationException("Test Exception Triggered"))
+
+        val savedUser = userService.updateUser(test)
+        Mockito.verify(repository, Mockito.atLeastOnce()).save(test)
+        assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
+        assertNull(savedUser.entity)
+        assertNotNull(savedUser.errorMessage)
+        assertEquals(savedUser.errorMessage, "Test Exception Triggered")
+    }
+
+    @Test
+    fun givenOptimisticLockingFailureException_whenUpdating_thenReturnFailureResult() {
+        val test = user.copy(firstName = TestStrings.USER_FIRST_NAME_VALID_UPDATE)
+        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(repository.save(test)).thenThrow(OptimisticLockingFailureException("Test Exception Triggered"))
+
+        val savedUser = userService.updateUser(test)
+        Mockito.verify(repository, Mockito.atLeastOnce()).save(test)
+        assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
+        assertNull(savedUser.entity)
+        assertNotNull(savedUser.errorMessage)
+        assertEquals(savedUser.errorMessage, "Test Exception Triggered")
+    }
+
+    @Test
+    fun givenStaleStateException_whenUpdating_thenReturnFailureResult() {
+        val test = user.copy(firstName = TestStrings.USER_FIRST_NAME_VALID_UPDATE)
+        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(repository.save(test)).thenThrow(StaleStateException("Test Exception Triggered"))
+
+        val savedUser = userService.updateUser(test)
+        Mockito.verify(repository, Mockito.atLeastOnce()).save(test)
+        assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
+        assertNull(savedUser.entity)
+        assertNotNull(savedUser.errorMessage)
+        assertEquals(savedUser.errorMessage, "Test Exception Triggered")
+    }
+
+    @Test
+    fun givenPersistenceException_whenUpdating_thenReturnFailureResult() {
+        val test = user.copy(firstName = TestStrings.USER_FIRST_NAME_VALID_UPDATE)
+        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(repository.save(test)).thenThrow(PersistenceException("Test Exception Triggered"))
+
+        val savedUser = userService.updateUser(test)
+        Mockito.verify(repository, Mockito.atLeastOnce()).save(test)
+        assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
+        assertNull(savedUser.entity)
+        assertNotNull(savedUser.errorMessage)
+        assertEquals(savedUser.errorMessage, "Test Exception Triggered")
     }
 
 //endregion
