@@ -1,5 +1,6 @@
 package com.sycosoft.hireout.database.repositories
 
+import com.sycosoft.hireout.TestStrings
 import com.sycosoft.hireout.database.entities.User
 import com.sycosoft.hireout.database.repository.UserRepository
 import org.junit.jupiter.api.BeforeEach
@@ -10,6 +11,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager
 import org.springframework.core.env.Environment
 import java.util.*
 import org.junit.jupiter.api.Assertions.*
+import org.springframework.dao.DataIntegrityViolationException
 
 @DataJpaTest
 class UserRepositoryTest {
@@ -27,37 +29,44 @@ class UserRepositoryTest {
     @BeforeEach
     fun setUp() {
         val user = User.Builder()
-            .uuid(UUID.randomUUID())
-            .firstName(Strings.USER_FIRST_NAME_VALID)
-            .lastName(Strings.USER_LAST_NAME_VALID)
-            .username(Strings.USER_USERNAME_VALID)
-            .password(Strings.USER_PASSWORD_VALID)
+            .uuid(testUUID)
+            .firstName(TestStrings.USER_FIRST_NAME_VALID)
+            .lastName(TestStrings.USER_LAST_NAME_VALID)
+            .username(TestStrings.USER_USERNAME_VALID)
+            .password(TestStrings.USER_PASSWORD_VALID)
             .isDeleted(false)
             .build()
 
         entityManager.merge(user)
     }
 
-    class Strings {
-        companion object {
-            const val USER_USERNAME_VALID: String = "test.user"
-            const val USER_PASSWORD_VALID: String = "password123"
-            const val USER_FIRST_NAME_VALID: String = "Test"
-            const val USER_LAST_NAME_VALID: String = "User"
-        }
-    }
+//region Save Method tests
 
     @Test
-    fun givenUserObject_whenSave_thenReturnSavedUser() {
+    fun givenUserObject_whenSaved_thenReturnSavedUser() {
         val savedUser = userRepository.save(User.Builder()
-            .firstName(Strings.USER_FIRST_NAME_VALID)
-            .lastName(Strings.USER_LAST_NAME_VALID)
-            .username(Strings.USER_USERNAME_VALID)
-            .password(Strings.USER_PASSWORD_VALID)
+            .firstName(TestStrings.USER_FIRST_NAME_VALID)
+            .lastName(TestStrings.USER_LAST_NAME_VALID)
+            .username(TestStrings.USER_USERNAME_VALID)
+            .password(TestStrings.USER_PASSWORD_VALID)
             .isDeleted(false)
             .build())
 
         assertNotNull(savedUser)
         assertNotNull(savedUser.uuid)
+        assertEquals(savedUser.firstName, TestStrings.USER_FIRST_NAME_VALID)
+        assertEquals(savedUser.lastName, TestStrings.USER_LAST_NAME_VALID)
+        assertEquals(savedUser.username, TestStrings.USER_USERNAME_VALID)
+        assertFalse(savedUser.isDeleted)
     }
+
+//endregion
+//region Get Method Tests
+
+    @Test
+    fun givenValidUUID_whenGetting_thenReturnUserObject() {
+
+    }
+
+//endregion
 }

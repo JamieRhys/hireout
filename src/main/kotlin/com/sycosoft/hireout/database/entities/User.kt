@@ -12,8 +12,8 @@ data class User(
     @Column(name = "uuid")
     val uuid: UUID? = null,
 
-    @Column(name = "username")
-    @NotNull @NotBlank
+    @Column(name = "username", unique = true)
+    @NotNull(message = "Please provide a username") @NotBlank
     val username: String? = null,
 
     @Column(name = "password")
@@ -21,7 +21,7 @@ data class User(
     var password: String? = null,
 
     @Column(name = "first_name")
-    @NotNull @NotBlank
+    @NotNull(message = "Please provide a first name.") @NotBlank
     var firstName: String? = null,
 
     @Column(name = "last_name")
@@ -35,6 +35,7 @@ data class User(
     constructor(builder: Builder) : this(
         uuid = builder.uuid,
         username = builder.username,
+        password = builder.password,
         firstName = builder.firstName,
         lastName = builder.lastName,
         isDeleted = builder.isDeleted
