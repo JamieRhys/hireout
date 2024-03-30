@@ -8,10 +8,7 @@ import jakarta.persistence.PersistenceException
 import org.hibernate.StaleStateException
 import org.hibernate.exception.ConstraintViolationException
 import org.hibernate.exception.LockAcquisitionException
-import org.springframework.dao.ConcurrencyFailureException
-import org.springframework.dao.DataAccessException
-import org.springframework.dao.DataIntegrityViolationException
-import org.springframework.dao.OptimisticLockingFailureException
+import org.springframework.dao.*
 import org.springframework.stereotype.Service
 import java.util.*
 
@@ -224,7 +221,36 @@ class UserServiceImpl(
                 code = ResultCode.FETCH_SUCCESS,
                 entity = found.get()
             )
-        } catch(exception: Exception) {
+        } catch(exception: DataAccessException) {
+            DatabaseResult(
+                code = ResultCode.FETCH_FAILURE,
+                errorMessage = exception.message.toString()
+            )
+        }
+    }
+
+    override fun getUser(username: String): DatabaseResult<User> {
+        // First off, let's try and find the object.
+        return try {
+            val found = userRepository.getUserByUsername(username)
+
+            if(!found.isPresent) {
+                return DatabaseResult(
+                    code = ResultCode.FETCH_FAILURE,
+                    errorMessage = UserService.ErrorMessages.USER_NOT_FOUND_USERNAME + username
+                )
+            }
+
+            DatabaseResult(
+                code = ResultCode.FETCH_SUCCESS,
+                entity = found.get()
+            )
+        } catch(exception: DataAccessException) {
+            DatabaseResult(
+                code = ResultCode.FETCH_FAILURE,
+                errorMessage = exception.message.toString()
+            )
+        } catch(exception: DataRetrievalFailureException) {
             DatabaseResult(
                 code = ResultCode.FETCH_FAILURE,
                 errorMessage = exception.message.toString()

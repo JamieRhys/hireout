@@ -6,8 +6,6 @@ import com.sycosoft.hireout.database.repository.UserRepository
 import com.sycosoft.hireout.database.result.ResultCode
 import jakarta.persistence.PersistenceException
 import org.hibernate.StaleStateException
-import org.hibernate.exception.ConstraintViolationException
-import org.hibernate.exception.LockAcquisitionException
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -18,8 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.mock.mockito.MockBean
-import org.springframework.dao.DataIntegrityViolationException
-import org.springframework.dao.OptimisticLockingFailureException
+import org.springframework.dao.*
 import java.util.*
 
 @SpringBootTest
@@ -261,7 +258,7 @@ class UserServiceImplTest {
 
 //endregion
 //endregion
-//region Update Method Tests
+//region User Update Method Tests
 
     @Test
     fun givenNullUUID_whenUpdating_thenReturnFailureResult() {
@@ -597,6 +594,131 @@ class UserServiceImplTest {
         assertEquals(savedUser.errorMessage, "Test Exception Triggered")
     }
 
+//endregion
+//endregion
+//region User Get Method Tests
+//region UUID
+
+    @Test
+    fun givenValidUserUUID_whenGetting_thenProvideSuccessResultAndObject() {
+        Mockito.`when`(repository.findById(user.uuid!!)).thenReturn(Optional.of(user))
+
+        val found = userService.getUser(user.uuid!!)
+
+        Mockito.verify(repository, Mockito.atLeastOnce()).findById(user.uuid!!)
+        assertEquals(found.code, ResultCode.FETCH_SUCCESS)
+        assertNull(found.errorMessage)
+        assertNotNull(found.entity)
+        assertEquals(found.entity?.uuid, user.uuid)
+        assertEquals(found.entity?.firstName, user.firstName)
+        assertEquals(found.entity?.lastName, user.lastName)
+        assertEquals(found.entity?.username, user.username)
+        assertEquals(found.entity?.password, user.password)
+        assertFalse(found.entity?.isDeleted!!)
+    }
+
+    @Test
+    fun givenInvalidUserUUID_whenGetting_thenProvideFailureResult() {
+        val testUUID = UUID.randomUUID()
+        val found = userService.getUser(testUUID)
+
+        Mockito.verify(repository, Mockito.atLeastOnce()).findById(testUUID)
+        assertEquals(found.code, ResultCode.FETCH_FAILURE)
+        assertNull(found.entity)
+        assertNotNull(found.errorMessage)
+        assertEquals(found.errorMessage, UserService.ErrorMessages.USER_NOT_FOUND_UUID + testUUID)
+    }
+
+//region Exception Tests
+
+    @Test
+    fun givenDataAccessException_whenGetting_thenProvideFailureResult() {
+        Mockito.`when`(repository.findById(user.uuid!!)).thenThrow(EmptyResultDataAccessException(1))
+
+        val found = userService.getUser(user.uuid!!)
+
+        Mockito.verify(repository, Mockito.atLeastOnce()).findById(user.uuid!!)
+        assertEquals(found.code, ResultCode.FETCH_FAILURE)
+        assertNull(found.entity)
+        assertNotNull(found.errorMessage)
+        assertEquals(found.errorMessage, "Incorrect result size: expected 1, actual 0")
+    }
+
+//endregion
+//endregion
+//region Name
+
+    @Test
+    fun givenValidUserUsername_whenGetting_thenProvideSuccessResultAndObject() {
+        Mockito.`when`(repository.getUserByUsername(user.username!!)).thenReturn(Optional.of(user))
+
+        val found = userService.getUser(user.username!!)
+
+        Mockito.verify(repository, Mockito.atLeastOnce()).getUserByUsername(user.username!!)
+        assertEquals(found.code, ResultCode.FETCH_SUCCESS)
+        assertNull(found.errorMessage)
+        assertNotNull(found.entity)
+        assertEquals(found.entity?.uuid, user.uuid)
+        assertEquals(found.entity?.firstName, user.firstName)
+        assertEquals(found.entity?.lastName, user.lastName)
+        assertEquals(found.entity?.username, user.username)
+        assertEquals(found.entity?.password, user.password)
+        assertFalse(found.entity?.isDeleted!!)
+    }
+
+    @Test
+    fun givenInvalidUserUsername_whenGetting_thenProvideFailureResult() {
+        val found = userService.getUser(TestStrings.USER_USERNAME_INVALID)
+
+        Mockito.verify(repository, Mockito.atLeastOnce()).getUserByUsername(TestStrings.USER_USERNAME_INVALID)
+        assertEquals(found.code, ResultCode.FETCH_FAILURE)
+        assertNull(found.entity)
+        assertNotNull(found.errorMessage)
+        assertEquals(found.errorMessage, UserService.ErrorMessages.USER_NOT_FOUND_USERNAME + TestStrings.USER_USERNAME_INVALID)
+    }
+
+//region Exception Tests
+
+    @Test
+    fun givenEmptyResultDataAccessException_whenGetting_thenProvideFailureResult() {
+        Mockito.`when`(repository.getUserByUsername(user.username!!)).thenThrow(EmptyResultDataAccessException(1))
+
+        val found = userService.getUser(user.username!!)
+
+        Mockito.verify(repository, Mockito.atLeastOnce()).getUserByUsername(user.username!!)
+        assertEquals(found.code, ResultCode.FETCH_FAILURE)
+        assertNull(found.entity)
+        assertNotNull(found.errorMessage)
+        assertEquals(found.errorMessage, "Incorrect result size: expected 1, actual 0")
+    }
+
+    @Test
+    fun givenIncorrectResultSizeDataAccessException_whenGetting_thenProvideFailureResult() {
+        Mockito.`when`(repository.getUserByUsername(user.username!!)).thenThrow(IncorrectResultSizeDataAccessException(1))
+
+        val found = userService.getUser(user.username!!)
+
+        Mockito.verify(repository, Mockito.atLeastOnce()).getUserByUsername(user.username!!)
+        assertEquals(found.code, ResultCode.FETCH_FAILURE)
+        assertNull(found.entity)
+        assertNotNull(found.errorMessage)
+        assertEquals(found.errorMessage, "Incorrect result size: expected 1")
+    }
+
+    @Test
+    fun givenDataRetrievalFailureException_whenGetting_thenProvideFailureResult() {
+        Mockito.`when`(repository.getUserByUsername(user.username!!)).thenThrow(DataRetrievalFailureException("Test Exception Triggered"))
+
+        val found = userService.getUser(user.username!!)
+
+        Mockito.verify(repository, Mockito.atLeastOnce()).getUserByUsername(user.username!!)
+        assertEquals(found.code, ResultCode.FETCH_FAILURE)
+        assertNull(found.entity)
+        assertNotNull(found.errorMessage)
+        assertEquals(found.errorMessage, "Test Exception Triggered")
+    }
+
+//endregion
 //endregion
 //endregion
 }

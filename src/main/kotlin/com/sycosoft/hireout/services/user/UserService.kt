@@ -22,7 +22,17 @@ interface UserService {
      */
     fun updateUser(user: User): DatabaseResult<User>
 
+    /** Attempts to get [User] from database with the provided [UUID].
+     * @param uuid The [UUID] of the user we want to retrieve from the database.
+     * @return [DatabaseResult] either with a [ResultCode.FETCH_FAILURE] or [ResultCode.FETCH_SUCCESS] and the entity if the latter.
+     */
     fun getUser(uuid: UUID): DatabaseResult<User>
+
+    /** Attempts to get [User] from database with the provided [String] username.
+     * @param username The [String] object that is the [User] username.
+     * @return [DatabaseResult] either with a [ResultCode.FETCH_FAILURE] or [ResultCode.FETCH_SUCCESS] and the entity if the latter.
+     */
+    fun getUser(username: String): DatabaseResult<User>
 
     class ErrorMessages {
         companion object {
@@ -34,6 +44,7 @@ interface UserService {
             const val NOTHING_TO_UPDATE: String = "Nothing to update for provided user."
 
             const val USER_NOT_FOUND_UUID: String = "User not found with UUID of "
+            const val USER_NOT_FOUND_USERNAME: String = "User not found with username of "
             const val USER_UUID_NULL_OR_BLANK: String = "User UUID is null or blank."
             const val USER_USERNAME_CANNOT_BE_CHANGED: String = "Username cannot be changed."
         }
