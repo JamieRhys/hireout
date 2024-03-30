@@ -30,7 +30,9 @@ class UserServiceImplTest {
     private lateinit var  repository: UserRepository
 
     private val testUUID = UUID.randomUUID()
+    private val adminUUID = UUID.randomUUID()
     private lateinit var user: User
+    private lateinit var adminUser: User
 
     @BeforeEach
     fun setUp() {
@@ -42,6 +44,18 @@ class UserServiceImplTest {
             .password(TestStrings.USER_PASSWORD_VALID)
             .isDeleted(false)
             .build()
+
+        adminUser = User.Builder()
+            .uuid(adminUUID)
+            .firstName("Admin")
+            .lastName("User")
+            .username("admin.user")
+            .password("password123")
+            .isDeleted(false)
+            .build()
+
+        Mockito.`when`(repository.findById(adminUUID)).thenReturn(Optional.of(adminUser))
+        Mockito.`when`(repository.getUserByUsername(adminUser.username!!)).thenReturn(Optional.of(adminUser))
     }
 
 //region User Save Method Tests
@@ -719,6 +733,88 @@ class UserServiceImplTest {
     }
 
 //endregion
+//endregion
+//endregion
+//region Delete Method Tests
+//region UUID
+
+    @Test
+    fun givenValidUserUUID_whenDeleting_thenProvideSuccessfulResult() {
+        Mockito.`when`(repository.findById(user.uuid!!)).thenReturn(Optional.of(user))
+
+        val deletedUser = userService.deleteUser(user.uuid!!)
+
+        Mockito.verify(repository, Mockito.atLeastOnce()).deleteById(user.uuid!!)
+        assertEquals(deletedUser.code, ResultCode.DELETION_SUCCESS)
+        assertNotNull(deletedUser.entity)
+        assertTrue(deletedUser.entity!!)
+        assertNull(deletedUser.errorMessage)
+    }
+
+    @Test
+    fun givenInvalidUserUUID_whenDeleting_thenProvideFailureResult() {
+        val testUUID = UUID.randomUUID()
+
+        val deletedUser = userService.deleteUser(testUUID)
+
+        Mockito.verify(repository, Mockito.never()).deleteById(testUUID)
+        assertEquals(deletedUser.code, ResultCode.DELETION_FAILURE)
+        assertNull(deletedUser.entity)
+        assertNotNull(deletedUser.errorMessage)
+        assertEquals(deletedUser.errorMessage, UserService.ErrorMessages.USER_NOT_FOUND_UUID + testUUID)
+    }
+
+    @Test
+    fun givenAdminUserUUID_whenDeleting_thenProvideFailureResult() {
+        val deletedUser = userService.deleteUser(adminUser.uuid!!)
+
+        Mockito.verify(repository, Mockito.never()).deleteById(adminUser.uuid!!)
+        assertEquals(deletedUser.code, ResultCode.DELETION_FAILURE)
+        assertNull(deletedUser.entity)
+        assertNotNull(deletedUser.errorMessage)
+        assertEquals(deletedUser.errorMessage, UserService.ErrorMessages.CANNOT_DELETE_ADMIN_USER)
+    }
+
+//endregion
+//region Username
+
+    @Test
+    fun givenValidUserUsername_whenDeleting_thenProvideSuccessfulResult() {
+        Mockito.`when`(repository.getUserByUsername(user.username!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(repository.findById(user.uuid!!)).thenReturn(Optional.of(user))
+
+        val deletedUser = userService.deleteUser(user.username!!)
+
+        Mockito.verify(repository, Mockito.atLeastOnce()).deleteById(user.uuid!!)
+        assertEquals(deletedUser.code, ResultCode.DELETION_SUCCESS)
+        assertNotNull(deletedUser.entity)
+        assertTrue(deletedUser.entity!!)
+        assertNull(deletedUser.errorMessage)
+    }
+
+    @Test
+    fun givenInvalidUserUsername_whenDeleting_thenProvideFailureResult() {
+
+        val deletedUser = userService.deleteUser(TestStrings.USER_USERNAME_INVALID)
+
+        Mockito.verify(repository, Mockito.never()).deleteById(testUUID)
+        assertEquals(deletedUser.code, ResultCode.DELETION_FAILURE)
+        assertNull(deletedUser.entity)
+        assertNotNull(deletedUser.errorMessage)
+        assertEquals(deletedUser.errorMessage, UserService.ErrorMessages.USER_NOT_FOUND_USERNAME + TestStrings.USER_USERNAME_INVALID)
+    }
+
+    @Test
+    fun givenAdminUserUsername_whenDeleting_thenProvideFailureResult() {
+        val deletedUser = userService.deleteUser(adminUser.username!!)
+
+        Mockito.verify(repository, Mockito.never()).deleteById(adminUser.uuid!!)
+        assertEquals(deletedUser.code, ResultCode.DELETION_FAILURE)
+        assertNull(deletedUser.entity)
+        assertNotNull(deletedUser.errorMessage)
+        assertEquals(deletedUser.errorMessage, UserService.ErrorMessages.CANNOT_DELETE_ADMIN_USER)
+    }
+
 //endregion
 //endregion
 }

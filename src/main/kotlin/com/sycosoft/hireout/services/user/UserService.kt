@@ -34,6 +34,12 @@ interface UserService {
      */
     fun getUser(username: String): DatabaseResult<User>
 
+    fun getAllUsers(): List<User>
+
+    fun deleteUser(uuid: UUID): DatabaseResult<Boolean>
+
+    fun deleteUser(username: String): DatabaseResult<Boolean>
+
     class ErrorMessages {
         companion object {
             const val FIRST_NAME_NULL_OR_BLANK: String = "Please provide a first name."
@@ -47,6 +53,9 @@ interface UserService {
             const val USER_NOT_FOUND_USERNAME: String = "User not found with username of "
             const val USER_UUID_NULL_OR_BLANK: String = "User UUID is null or blank."
             const val USER_USERNAME_CANNOT_BE_CHANGED: String = "Username cannot be changed."
+
+            const val ADMIN_USER_NOT_FOUND: String = "Admin user not found. Reason: "
+            const val CANNOT_DELETE_ADMIN_USER: String = "Cannot delete Admin user."
         }
     }
 }

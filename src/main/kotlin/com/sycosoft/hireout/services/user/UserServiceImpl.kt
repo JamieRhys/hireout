@@ -257,4 +257,66 @@ class UserServiceImpl(
             )
         }
     }
+
+    override fun getAllUsers(): List<User> = userRepository.findAll()
+
+    override fun deleteUser(uuid: UUID): DatabaseResult<Boolean> {
+        return try {
+            val found = getUser(uuid)
+
+            if(found.code != ResultCode.FETCH_SUCCESS) {
+                return DatabaseResult(
+                    code = ResultCode.DELETION_FAILURE,
+                    errorMessage = found.errorMessage
+                )
+            }
+
+            val adminUser = getUser("admin.user")
+
+            if(adminUser.code != ResultCode.FETCH_SUCCESS) {
+                return DatabaseResult(
+                    code = ResultCode.DELETION_FAILURE,
+                    errorMessage = UserService.ErrorMessages.ADMIN_USER_NOT_FOUND + adminUser.errorMessage
+                )
+            }
+
+            if(found.entity?.uuid?.equals(adminUser.entity?.uuid) == true) {
+                return DatabaseResult(
+                    code = ResultCode.DELETION_FAILURE,
+                    errorMessage = UserService.ErrorMessages.CANNOT_DELETE_ADMIN_USER
+                )
+            }
+
+            found.entity?.isDeleted = true
+
+            updateUser(found.entity!!)
+
+            // TODO: Transfer all jobs and data to admin user.
+
+            userRepository.deleteById(found.entity.uuid!!)
+
+            DatabaseResult(
+                code = ResultCode.DELETION_SUCCESS,
+                entity = true
+            )
+        } catch(exception: Exception) {
+            DatabaseResult(
+                code = ResultCode.DELETION_FAILURE,
+                errorMessage = exception.message.toString()
+            )
+        }
+    }
+
+    override fun deleteUser(username: String): DatabaseResult<Boolean> {
+        val found = getUser(username)
+
+        if(found.code != ResultCode.FETCH_SUCCESS) {
+            return DatabaseResult(
+                code = ResultCode.DELETION_FAILURE,
+                errorMessage = found.errorMessage
+            )
+        }
+
+        return deleteUser(found.entity?.uuid!!)
+    }
 }
