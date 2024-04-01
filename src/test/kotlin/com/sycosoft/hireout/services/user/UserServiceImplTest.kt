@@ -849,16 +849,16 @@ class UserServiceImplTest {
 
     @Test
     fun givenValidUserRoleObject_whenSavingUserRole_thenProvideSuccessResultAndObject() {
-        val role = UserRole.Builder().roleName(userRoles[0].roleName!!).build()
-        Mockito.`when`(roleRepository.save(role)).thenReturn(userRoles[0])
+        val role = UserRole.Builder().roleName(TestStrings.TEST_ROLE_NAME).build()
+        Mockito.`when`(roleRepository.save(role)).thenReturn(testRole)
         val savedRole = userService.saveUserRole(role)
 
         Mockito.verify(roleRepository, Mockito.atLeastOnce()).save(role)
         assertEquals(savedRole.code, ResultCode.CREATION_SUCCESS)
         assertNull(savedRole.errorMessage)
         assertNotNull(savedRole.entity)
-        assertEquals(savedRole.entity?.id, userRoles[0].id)
-        assertEquals(savedRole.entity?.roleName, userRoles[0].roleName)
+        assertEquals(savedRole.entity?.id, testRole.id)
+        assertEquals(savedRole.entity?.roleName, testRole.roleName)
     }
 
     @Test
