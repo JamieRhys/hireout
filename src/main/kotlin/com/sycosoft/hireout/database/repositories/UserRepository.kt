@@ -1,4 +1,4 @@
-package com.sycosoft.hireout.database.repository
+package com.sycosoft.hireout.database.repositories
 
 import com.sycosoft.hireout.database.entities.User
 import org.springframework.data.jpa.repository.JpaRepository

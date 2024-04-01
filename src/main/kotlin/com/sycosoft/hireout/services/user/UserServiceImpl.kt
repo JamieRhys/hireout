@@ -1,7 +1,9 @@
 package com.sycosoft.hireout.services.user
 
 import com.sycosoft.hireout.database.entities.User
-import com.sycosoft.hireout.database.repository.UserRepository
+import com.sycosoft.hireout.database.entities.UserRole
+import com.sycosoft.hireout.database.repositories.UserRepository
+import com.sycosoft.hireout.database.repositories.UserRoleRepository
 import com.sycosoft.hireout.database.result.DatabaseResult
 import com.sycosoft.hireout.database.result.ResultCode
 import jakarta.persistence.PersistenceException
@@ -14,8 +16,11 @@ import java.util.*
 
 @Service
 class UserServiceImpl(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val roleRepository: UserRoleRepository,
 ) : UserService {
+//region User Methods
+
     override fun saveUser(user: User): DatabaseResult<User> {
         return try {
             // Let's check if the first name field is blank or null. If either, we then need to
@@ -318,5 +323,99 @@ class UserServiceImpl(
         }
 
         return deleteUser(found.entity?.uuid!!)
+    }
+
+//endregion
+
+    override fun saveUserRole(role: UserRole): DatabaseResult<UserRole> {
+        return try {
+            if(role.roleName.isNullOrBlank()) {
+                return DatabaseResult(
+                    code = ResultCode.CREATION_FAILURE,
+                    errorMessage = UserService.ErrorMessages.ROLE_NAME_NULL_OR_BLANK
+                )
+            }
+
+            if(getAllUserRoles().isNotEmpty()) {
+                val found = getUserRole(role.roleName)
+
+                if(found.code != ResultCode.FETCH_FAILURE) {
+                    return DatabaseResult(
+                        code = ResultCode.CREATION_FAILURE,
+                        errorMessage = UserService.ErrorMessages.ROLE_NOT_UNIQUE
+                    )
+                }
+            }
+
+            val saved = roleRepository.save(role)
+
+            DatabaseResult(
+                code = ResultCode.CREATION_SUCCESS,
+                entity = saved
+            )
+        } catch(exception: DataAccessException) {
+            DatabaseResult(
+                code = ResultCode.CREATION_FAILURE,
+                errorMessage = exception.message.toString()
+            )
+        }  catch(exception: ConcurrencyFailureException) {
+            DatabaseResult(
+                code = ResultCode.CREATION_FAILURE,
+                errorMessage = exception.message.toString()
+            )
+        } catch(exception: OptimisticLockingFailureException) {
+            DatabaseResult(
+                code = ResultCode.CREATION_FAILURE,
+                errorMessage = exception.message.toString()
+            )
+        } catch(exception: Exception) {
+            DatabaseResult(
+                code = ResultCode.CREATION_FAILURE,
+                errorMessage = exception.message.toString()
+            )
+        }
+    }
+
+    override fun saveUserRole(roleName: String): DatabaseResult<UserRole> = saveUserRole(UserRole(roleName = roleName))
+
+    override fun saveUserRoles(roles: List<UserRole>): DatabaseResult<List<UserRole>> {
+        TODO("Not yet implemented")
+    }
+
+    override fun saveUserRolesByName(roles: List<String>): DatabaseResult<List<UserRole>> {
+        TODO("Not yet implemented")
+    }
+
+    override fun getUserRole(id: Int): DatabaseResult<UserRole> {
+        TODO("Not yet implemented")
+    }
+
+    override fun getUserRole(roleName: String): DatabaseResult<UserRole> {
+        return try {
+            val found = roleRepository.getRoleByName(roleName)
+
+            if(!found.isPresent) {
+                return DatabaseResult(
+                    code = ResultCode.FETCH_FAILURE,
+                    errorMessage = UserService.ErrorMessages.ROLE_NOT_FOUND_NAME + roleName
+                )
+            }
+
+            DatabaseResult(
+                code = ResultCode.FETCH_SUCCESS,
+                entity = found.get()
+            )
+        } catch(exception: Exception) {
+            DatabaseResult(
+                code = ResultCode.FETCH_FAILURE,
+                errorMessage = exception.message.toString()
+            )
+        }
+    }
+
+    override fun getAllUserRoles(): List<UserRole> = roleRepository.findAll()
+
+    override fun addRoleToUser(username: String, roleName: String): DatabaseResult<User> {
+        TODO("Not yet implemented")
     }
 }

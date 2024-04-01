@@ -1,6 +1,7 @@
 package com.sycosoft.hireout.services.user
 
 import com.sycosoft.hireout.database.entities.User
+import com.sycosoft.hireout.database.entities.UserRole
 import com.sycosoft.hireout.database.result.DatabaseResult
 import com.sycosoft.hireout.database.result.ResultCode
 import jakarta.validation.Valid
@@ -8,6 +9,8 @@ import jakarta.validation.constraints.NotNull
 import java.util.*
 
 interface UserService {
+//region User Methods
+
     /** Saves the [User] to the database.
      * @param user The [User] object to be saved.
      * @return A [DatabaseResult] which, if successful, will hold a success [ResultCode] and the Database Entity. If unsuccessful, the [ResultCode] will hold failure
@@ -40,6 +43,27 @@ interface UserService {
 
     fun deleteUser(username: String): DatabaseResult<Boolean>
 
+//endregion
+//region User Role Methods
+
+    fun saveUserRole(role: UserRole): DatabaseResult<UserRole>
+
+    fun saveUserRole(roleName: String): DatabaseResult<UserRole>
+
+    fun saveUserRoles(roles: List<UserRole>): DatabaseResult<List<UserRole>>
+
+    fun saveUserRolesByName(roles: List<String>): DatabaseResult<List<UserRole>>
+
+    fun getUserRole(id: Int): DatabaseResult<UserRole>
+
+    fun getUserRole(roleName: String): DatabaseResult<UserRole>
+
+    fun getAllUserRoles(): List<UserRole>
+
+    fun addRoleToUser(username: String, roleName: String): DatabaseResult<User>
+
+//endregion
+
     class ErrorMessages {
         companion object {
             const val FIRST_NAME_NULL_OR_BLANK: String = "Please provide a first name."
@@ -56,6 +80,11 @@ interface UserService {
 
             const val ADMIN_USER_NOT_FOUND: String = "Admin user not found. Reason: "
             const val CANNOT_DELETE_ADMIN_USER: String = "Cannot delete Admin user."
+
+            const val ROLE_NAME_NULL_OR_BLANK: String = "Please provide a name for the role"
+            const val ROLE_NOT_FOUND_ID: String = "Role not found with ID of "
+            const val ROLE_NOT_FOUND_NAME: String = "Role not found with name of "
+            const val ROLE_NOT_UNIQUE: String = "Role name already being used. Please choose another."
         }
     }
 }

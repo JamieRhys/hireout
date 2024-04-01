@@ -10,6 +10,13 @@ import org.springframework.context.annotation.Configuration
 class DatabaseConfiguration {
     companion object {
         @Bean
+        fun initialiseUserRolesTable(userService: UserService): CommandLineRunner {
+            return CommandLineRunner {
+
+            }
+        }
+
+        @Bean
         fun initialiseUserTable(userService: UserService): CommandLineRunner {
             return CommandLineRunner {
                 if(userService.getAllUsers().isEmpty()) {

@@ -13,5 +13,7 @@ class TestStrings {
         const val USER_LAST_NAME_VALID_UPDATE: String = "Doe"
         const val USER_USERNAME_VALID_UPDATE: String = "testuser"
         const val USER_PASSWORD_VALID_UPDATE: String = "password321"
+
+        const val TEST_ROLE_NAME: String = "ROLE_TEST"
     }
 }

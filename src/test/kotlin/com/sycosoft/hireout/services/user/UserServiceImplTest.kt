@@ -2,7 +2,9 @@ package com.sycosoft.hireout.services.user
 
 import com.sycosoft.hireout.TestStrings
 import com.sycosoft.hireout.database.entities.User
-import com.sycosoft.hireout.database.repository.UserRepository
+import com.sycosoft.hireout.database.entities.UserRole
+import com.sycosoft.hireout.database.repositories.UserRepository
+import com.sycosoft.hireout.database.repositories.UserRoleRepository
 import com.sycosoft.hireout.database.result.ResultCode
 import jakarta.persistence.PersistenceException
 import org.hibernate.StaleStateException
@@ -27,15 +29,32 @@ class UserServiceImplTest {
     private lateinit var userService: UserService
 
     @MockBean
-    private lateinit var  repository: UserRepository
+    private lateinit var  userRepository: UserRepository
+
+    @MockBean
+    private lateinit var roleRepository: UserRoleRepository
 
     private val testUUID = UUID.randomUUID()
     private val adminUUID = UUID.randomUUID()
     private lateinit var user: User
     private lateinit var adminUser: User
 
+    private lateinit var userRoles: List<UserRole>
+    private lateinit var testRole: UserRole
+
     @BeforeEach
     fun setUp() {
+
+        userRoles  = listOf(
+            UserRole.Builder().id(1).roleName("ROLE_ADMIN").build(),
+            UserRole.Builder().id(2).roleName("ROLE_POWER_USER").build(),
+            UserRole.Builder().id(3).roleName("ROLE_USER").build(),
+            UserRole.Builder().id(4).roleName("ROLE_ACCOUNTING").build(),
+            UserRole.Builder().id(5).roleName("ROLE_READ_ONLY").build()
+        )
+
+        testRole = UserRole.Builder().id(999).roleName(TestStrings.TEST_ROLE_NAME).build()
+
         user = User.Builder()
             .uuid(testUUID)
             .firstName(TestStrings.USER_FIRST_NAME_VALID)
@@ -54,10 +73,16 @@ class UserServiceImplTest {
             .isDeleted(false)
             .build()
 
-        Mockito.`when`(repository.findById(adminUUID)).thenReturn(Optional.of(adminUser))
-        Mockito.`when`(repository.getUserByUsername(adminUser.username!!)).thenReturn(Optional.of(adminUser))
-    }
+        Mockito.`when`(userRepository.findById(adminUUID)).thenReturn(Optional.of(adminUser))
+        Mockito.`when`(userRepository.getUserByUsername(adminUser.username!!)).thenReturn(Optional.of(adminUser))
 
+        userRoles.forEach { userRole ->
+            Mockito.`when`(roleRepository.findById(userRole.id!!)).thenReturn(Optional.of(userRole))
+            Mockito.`when`(roleRepository.getRoleByName(userRole.roleName!!)).thenReturn(Optional.of(userRole))
+        }
+        Mockito.`when`(roleRepository.findAll()).thenReturn(userRoles.toMutableList())
+    }
+//region User Tests
 //region User Save Method Tests
 //region Valid User Object Test
     @Test
@@ -69,11 +94,11 @@ class UserServiceImplTest {
             .password(TestStrings.USER_PASSWORD_VALID)
             .isDeleted(false)
             .build()
-        Mockito.`when`(repository.save(test)).thenReturn(user)
+        Mockito.`when`(userRepository.save(test)).thenReturn(user)
 
         val savedTest = userService.saveUser(test)
 
-        Mockito.verify(repository, Mockito.atLeastOnce()).save(test)
+        Mockito.verify(userRepository, Mockito.atLeastOnce()).save(test)
         assertEquals(savedTest.code, ResultCode.CREATION_SUCCESS)
         assertNull(savedTest.errorMessage)
         assertNotNull(savedTest.entity)
@@ -98,7 +123,7 @@ class UserServiceImplTest {
 
         val savedTest = userService.saveUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(savedTest.code, ResultCode.CREATION_FAILURE)
         assertNull(savedTest.entity)
         assertNotNull(savedTest.errorMessage)
@@ -117,7 +142,7 @@ class UserServiceImplTest {
 
         val savedTest = userService.saveUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(savedTest.code, ResultCode.CREATION_FAILURE)
         assertNull(savedTest.entity)
         assertNotNull(savedTest.errorMessage)
@@ -138,7 +163,7 @@ class UserServiceImplTest {
 
         val savedTest = userService.saveUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(savedTest.code, ResultCode.CREATION_FAILURE)
         assertNull(savedTest.entity)
         assertNotNull(savedTest.errorMessage)
@@ -157,7 +182,7 @@ class UserServiceImplTest {
 
         val savedTest = userService.saveUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(savedTest.code, ResultCode.CREATION_FAILURE)
         assertNull(savedTest.entity)
         assertNotNull(savedTest.errorMessage)
@@ -178,7 +203,7 @@ class UserServiceImplTest {
 
         val savedTest = userService.saveUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(savedTest.code, ResultCode.CREATION_FAILURE)
         assertNull(savedTest.entity)
         assertNotNull(savedTest.errorMessage)
@@ -197,7 +222,7 @@ class UserServiceImplTest {
 
         val savedTest = userService.saveUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(savedTest.code, ResultCode.CREATION_FAILURE)
         assertNull(savedTest.entity)
         assertNotNull(savedTest.errorMessage)
@@ -214,13 +239,13 @@ class UserServiceImplTest {
             .password(TestStrings.USER_PASSWORD_VALID)
             .isDeleted(false)
             .build()
-        Mockito.`when`(repository.getUserByUsername(test.username!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.getUserByUsername(test.username!!)).thenReturn(Optional.of(user))
 
         // When
         val savedTest = userService.saveUser(test)
 
         // Then
-        Mockito.verify(repository, Mockito.never()).save(test)  // Verify that the save method is never called again
+        Mockito.verify(userRepository, Mockito.never()).save(test)  // Verify that the save method is never called again
         assertEquals(ResultCode.CREATION_FAILURE, savedTest.code)
         assertNull(savedTest.entity)
         assertNotNull(savedTest.errorMessage)
@@ -242,7 +267,7 @@ class UserServiceImplTest {
 
         val savedUser = userService.saveUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(ResultCode.CREATION_FAILURE, savedUser.code)
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
@@ -262,7 +287,7 @@ class UserServiceImplTest {
 
         val savedUser = userService.saveUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(ResultCode.CREATION_FAILURE, savedUser.code)
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
@@ -280,7 +305,7 @@ class UserServiceImplTest {
 
         val savedUser = userService.updateUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
@@ -292,7 +317,7 @@ class UserServiceImplTest {
         val test = user.copy(uuid = UUID.randomUUID())
 
         val savedUser = userService.updateUser(test)
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
@@ -304,12 +329,12 @@ class UserServiceImplTest {
     @Test
     fun givenValidFirstNameUpdate_whenUpdating_thenReturnSuccessResult() {
         val test = user.copy(firstName = TestStrings.USER_FIRST_NAME_VALID_UPDATE)
-        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
-        Mockito.`when`(repository.save(test)).thenReturn(test)
+        Mockito.`when`(userRepository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.save(test)).thenReturn(test)
 
         val savedUser = userService.updateUser(test)
 
-        Mockito.verify(repository, Mockito.atLeastOnce()).save(test)
+        Mockito.verify(userRepository, Mockito.atLeastOnce()).save(test)
         assertEquals(ResultCode.UPDATE_SUCCESS, savedUser.code)
         assertNotNull(savedUser.entity)
         assertEquals(savedUser.entity?.uuid, test.uuid)
@@ -323,11 +348,11 @@ class UserServiceImplTest {
     @Test
     fun givenFirstNameNothingUpdated_whenUpdating_thenReturnSuccessResult() {
         val test = user.copy()
-        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.findById(test.uuid!!)).thenReturn(Optional.of(user))
 
         val savedUser = userService.updateUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
@@ -337,11 +362,11 @@ class UserServiceImplTest {
     @Test
     fun givenFirstNameNull_whenUpdating_thenReturnFailureResult() {
         val test = user.copy(firstName = null)
-        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.findById(test.uuid!!)).thenReturn(Optional.of(user))
 
         val savedUser = userService.updateUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
@@ -351,11 +376,11 @@ class UserServiceImplTest {
     @Test
     fun givenFirstNameBlank_whenUpdating_thenReturnFailureResult() {
         val test = user.copy(firstName = "")
-        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.findById(test.uuid!!)).thenReturn(Optional.of(user))
 
         val savedUser = userService.updateUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
@@ -368,12 +393,12 @@ class UserServiceImplTest {
     @Test
     fun givenValidLastNameUpdate_whenUpdating_thenReturnSuccessResult() {
         val test = user.copy(lastName = TestStrings.USER_LAST_NAME_VALID_UPDATE)
-        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
-        Mockito.`when`(repository.save(test)).thenReturn(test)
+        Mockito.`when`(userRepository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.save(test)).thenReturn(test)
 
         val savedUser = userService.updateUser(test)
 
-        Mockito.verify(repository, Mockito.atLeastOnce()).save(test)
+        Mockito.verify(userRepository, Mockito.atLeastOnce()).save(test)
         assertEquals(ResultCode.UPDATE_SUCCESS, savedUser.code)
         assertNotNull(savedUser.entity)
         assertEquals(savedUser.entity?.uuid, test.uuid)
@@ -387,11 +412,11 @@ class UserServiceImplTest {
     @Test
     fun givenLastNameNothingUpdated_whenUpdating_thenReturnSuccessResult() {
         val test = user.copy()
-        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.findById(test.uuid!!)).thenReturn(Optional.of(user))
 
         val savedUser = userService.updateUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
@@ -401,11 +426,11 @@ class UserServiceImplTest {
     @Test
     fun givenLastNameNull_whenUpdating_thenReturnFailureResult() {
         val test = user.copy(lastName = null)
-        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.findById(test.uuid!!)).thenReturn(Optional.of(user))
 
         val savedUser = userService.updateUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
@@ -415,11 +440,11 @@ class UserServiceImplTest {
     @Test
     fun givenLastNameBlank_whenUpdating_thenReturnFailureResult() {
         val test = user.copy(lastName = "")
-        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.findById(test.uuid!!)).thenReturn(Optional.of(user))
 
         val savedUser = userService.updateUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
@@ -432,11 +457,11 @@ class UserServiceImplTest {
     @Test
     fun givenValidUsernameUpdate_whenUpdating_thenReturnFailureResult() {
         val test = user.copy(username = TestStrings.USER_USERNAME_VALID_UPDATE)
-        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.findById(test.uuid!!)).thenReturn(Optional.of(user))
 
         val savedUser = userService.updateUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
@@ -446,11 +471,11 @@ class UserServiceImplTest {
     @Test
     fun givenUsernameNothingUpdated_whenUpdating_thenReturnFailureResult() {
         val test = user.copy()
-        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.findById(test.uuid!!)).thenReturn(Optional.of(user))
 
         val savedUser = userService.updateUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
@@ -460,11 +485,11 @@ class UserServiceImplTest {
     @Test
     fun givenUsernameNull_whenUpdating_thenReturnFailureResult() {
         val test = user.copy(username = null)
-        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.findById(test.uuid!!)).thenReturn(Optional.of(user))
 
         val savedUser = userService.updateUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
@@ -474,11 +499,11 @@ class UserServiceImplTest {
     @Test
     fun givenUsernameBlank_whenUpdating_thenReturnFailureResult() {
         val test = user.copy(username = "")
-        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.findById(test.uuid!!)).thenReturn(Optional.of(user))
 
         val savedUser = userService.updateUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
@@ -491,12 +516,12 @@ class UserServiceImplTest {
     @Test
     fun givenValidPasswordUpdate_whenUpdating_thenReturnSuccessResult() {
         val test = user.copy(password = TestStrings.USER_PASSWORD_VALID_UPDATE)
-        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
-        Mockito.`when`(repository.save(test)).thenReturn(test)
+        Mockito.`when`(userRepository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.save(test)).thenReturn(test)
 
         val savedUser = userService.updateUser(test)
 
-        Mockito.verify(repository, Mockito.atLeastOnce()).save(test)
+        Mockito.verify(userRepository, Mockito.atLeastOnce()).save(test)
         assertEquals(ResultCode.UPDATE_SUCCESS, savedUser.code)
         assertNotNull(savedUser.entity)
         assertEquals(savedUser.entity?.uuid, test.uuid)
@@ -510,11 +535,11 @@ class UserServiceImplTest {
     @Test
     fun givenPasswordNothingUpdated_whenUpdating_thenReturnSuccessResult() {
         val test = user.copy()
-        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.findById(test.uuid!!)).thenReturn(Optional.of(user))
 
         val savedUser = userService.updateUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
@@ -524,11 +549,11 @@ class UserServiceImplTest {
     @Test
     fun givenPasswordNull_whenUpdating_thenReturnFailureResult() {
         val test = user.copy(password = null)
-        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.findById(test.uuid!!)).thenReturn(Optional.of(user))
 
         val savedUser = userService.updateUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
@@ -538,11 +563,11 @@ class UserServiceImplTest {
     @Test
     fun givenPasswordBlank_whenUpdating_thenReturnFailureResult() {
         val test = user.copy(password = "")
-        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.findById(test.uuid!!)).thenReturn(Optional.of(user))
 
         val savedUser = userService.updateUser(test)
 
-        Mockito.verify(repository, Mockito.never()).save(test)
+        Mockito.verify(userRepository, Mockito.never()).save(test)
         assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
@@ -555,11 +580,11 @@ class UserServiceImplTest {
     @Test
     fun givenDataAccessExceptionThrown_whenUpdating_thenReturnFailureResult() {
         val test = user.copy(firstName = TestStrings.USER_FIRST_NAME_VALID_UPDATE)
-        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
-        Mockito.`when`(repository.save(test)).thenThrow(DataIntegrityViolationException("Test Exception Triggered"))
+        Mockito.`when`(userRepository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.save(test)).thenThrow(DataIntegrityViolationException("Test Exception Triggered"))
 
         val savedUser = userService.updateUser(test)
-        Mockito.verify(repository, Mockito.atLeastOnce()).save(test)
+        Mockito.verify(userRepository, Mockito.atLeastOnce()).save(test)
         assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
@@ -569,11 +594,11 @@ class UserServiceImplTest {
     @Test
     fun givenOptimisticLockingFailureException_whenUpdating_thenReturnFailureResult() {
         val test = user.copy(firstName = TestStrings.USER_FIRST_NAME_VALID_UPDATE)
-        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
-        Mockito.`when`(repository.save(test)).thenThrow(OptimisticLockingFailureException("Test Exception Triggered"))
+        Mockito.`when`(userRepository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.save(test)).thenThrow(OptimisticLockingFailureException("Test Exception Triggered"))
 
         val savedUser = userService.updateUser(test)
-        Mockito.verify(repository, Mockito.atLeastOnce()).save(test)
+        Mockito.verify(userRepository, Mockito.atLeastOnce()).save(test)
         assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
@@ -583,11 +608,11 @@ class UserServiceImplTest {
     @Test
     fun givenStaleStateException_whenUpdating_thenReturnFailureResult() {
         val test = user.copy(firstName = TestStrings.USER_FIRST_NAME_VALID_UPDATE)
-        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
-        Mockito.`when`(repository.save(test)).thenThrow(StaleStateException("Test Exception Triggered"))
+        Mockito.`when`(userRepository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.save(test)).thenThrow(StaleStateException("Test Exception Triggered"))
 
         val savedUser = userService.updateUser(test)
-        Mockito.verify(repository, Mockito.atLeastOnce()).save(test)
+        Mockito.verify(userRepository, Mockito.atLeastOnce()).save(test)
         assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
@@ -597,11 +622,11 @@ class UserServiceImplTest {
     @Test
     fun givenPersistenceException_whenUpdating_thenReturnFailureResult() {
         val test = user.copy(firstName = TestStrings.USER_FIRST_NAME_VALID_UPDATE)
-        Mockito.`when`(repository.findById(test.uuid!!)).thenReturn(Optional.of(user))
-        Mockito.`when`(repository.save(test)).thenThrow(PersistenceException("Test Exception Triggered"))
+        Mockito.`when`(userRepository.findById(test.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.save(test)).thenThrow(PersistenceException("Test Exception Triggered"))
 
         val savedUser = userService.updateUser(test)
-        Mockito.verify(repository, Mockito.atLeastOnce()).save(test)
+        Mockito.verify(userRepository, Mockito.atLeastOnce()).save(test)
         assertEquals(ResultCode.UPDATE_FAILURE, savedUser.code)
         assertNull(savedUser.entity)
         assertNotNull(savedUser.errorMessage)
@@ -615,11 +640,11 @@ class UserServiceImplTest {
 
     @Test
     fun givenValidUserUUID_whenGetting_thenProvideSuccessResultAndObject() {
-        Mockito.`when`(repository.findById(user.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.findById(user.uuid!!)).thenReturn(Optional.of(user))
 
         val found = userService.getUser(user.uuid!!)
 
-        Mockito.verify(repository, Mockito.atLeastOnce()).findById(user.uuid!!)
+        Mockito.verify(userRepository, Mockito.atLeastOnce()).findById(user.uuid!!)
         assertEquals(found.code, ResultCode.FETCH_SUCCESS)
         assertNull(found.errorMessage)
         assertNotNull(found.entity)
@@ -636,7 +661,7 @@ class UserServiceImplTest {
         val testUUID = UUID.randomUUID()
         val found = userService.getUser(testUUID)
 
-        Mockito.verify(repository, Mockito.atLeastOnce()).findById(testUUID)
+        Mockito.verify(userRepository, Mockito.atLeastOnce()).findById(testUUID)
         assertEquals(found.code, ResultCode.FETCH_FAILURE)
         assertNull(found.entity)
         assertNotNull(found.errorMessage)
@@ -647,11 +672,11 @@ class UserServiceImplTest {
 
     @Test
     fun givenDataAccessException_whenGetting_thenProvideFailureResult() {
-        Mockito.`when`(repository.findById(user.uuid!!)).thenThrow(EmptyResultDataAccessException(1))
+        Mockito.`when`(userRepository.findById(user.uuid!!)).thenThrow(EmptyResultDataAccessException(1))
 
         val found = userService.getUser(user.uuid!!)
 
-        Mockito.verify(repository, Mockito.atLeastOnce()).findById(user.uuid!!)
+        Mockito.verify(userRepository, Mockito.atLeastOnce()).findById(user.uuid!!)
         assertEquals(found.code, ResultCode.FETCH_FAILURE)
         assertNull(found.entity)
         assertNotNull(found.errorMessage)
@@ -664,11 +689,11 @@ class UserServiceImplTest {
 
     @Test
     fun givenValidUserUsername_whenGetting_thenProvideSuccessResultAndObject() {
-        Mockito.`when`(repository.getUserByUsername(user.username!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.getUserByUsername(user.username!!)).thenReturn(Optional.of(user))
 
         val found = userService.getUser(user.username!!)
 
-        Mockito.verify(repository, Mockito.atLeastOnce()).getUserByUsername(user.username!!)
+        Mockito.verify(userRepository, Mockito.atLeastOnce()).getUserByUsername(user.username!!)
         assertEquals(found.code, ResultCode.FETCH_SUCCESS)
         assertNull(found.errorMessage)
         assertNotNull(found.entity)
@@ -684,7 +709,7 @@ class UserServiceImplTest {
     fun givenInvalidUserUsername_whenGetting_thenProvideFailureResult() {
         val found = userService.getUser(TestStrings.USER_USERNAME_INVALID)
 
-        Mockito.verify(repository, Mockito.atLeastOnce()).getUserByUsername(TestStrings.USER_USERNAME_INVALID)
+        Mockito.verify(userRepository, Mockito.atLeastOnce()).getUserByUsername(TestStrings.USER_USERNAME_INVALID)
         assertEquals(found.code, ResultCode.FETCH_FAILURE)
         assertNull(found.entity)
         assertNotNull(found.errorMessage)
@@ -695,11 +720,11 @@ class UserServiceImplTest {
 
     @Test
     fun givenEmptyResultDataAccessException_whenGetting_thenProvideFailureResult() {
-        Mockito.`when`(repository.getUserByUsername(user.username!!)).thenThrow(EmptyResultDataAccessException(1))
+        Mockito.`when`(userRepository.getUserByUsername(user.username!!)).thenThrow(EmptyResultDataAccessException(1))
 
         val found = userService.getUser(user.username!!)
 
-        Mockito.verify(repository, Mockito.atLeastOnce()).getUserByUsername(user.username!!)
+        Mockito.verify(userRepository, Mockito.atLeastOnce()).getUserByUsername(user.username!!)
         assertEquals(found.code, ResultCode.FETCH_FAILURE)
         assertNull(found.entity)
         assertNotNull(found.errorMessage)
@@ -708,11 +733,11 @@ class UserServiceImplTest {
 
     @Test
     fun givenIncorrectResultSizeDataAccessException_whenGetting_thenProvideFailureResult() {
-        Mockito.`when`(repository.getUserByUsername(user.username!!)).thenThrow(IncorrectResultSizeDataAccessException(1))
+        Mockito.`when`(userRepository.getUserByUsername(user.username!!)).thenThrow(IncorrectResultSizeDataAccessException(1))
 
         val found = userService.getUser(user.username!!)
 
-        Mockito.verify(repository, Mockito.atLeastOnce()).getUserByUsername(user.username!!)
+        Mockito.verify(userRepository, Mockito.atLeastOnce()).getUserByUsername(user.username!!)
         assertEquals(found.code, ResultCode.FETCH_FAILURE)
         assertNull(found.entity)
         assertNotNull(found.errorMessage)
@@ -721,11 +746,11 @@ class UserServiceImplTest {
 
     @Test
     fun givenDataRetrievalFailureException_whenGetting_thenProvideFailureResult() {
-        Mockito.`when`(repository.getUserByUsername(user.username!!)).thenThrow(DataRetrievalFailureException("Test Exception Triggered"))
+        Mockito.`when`(userRepository.getUserByUsername(user.username!!)).thenThrow(DataRetrievalFailureException("Test Exception Triggered"))
 
         val found = userService.getUser(user.username!!)
 
-        Mockito.verify(repository, Mockito.atLeastOnce()).getUserByUsername(user.username!!)
+        Mockito.verify(userRepository, Mockito.atLeastOnce()).getUserByUsername(user.username!!)
         assertEquals(found.code, ResultCode.FETCH_FAILURE)
         assertNull(found.entity)
         assertNotNull(found.errorMessage)
@@ -740,11 +765,11 @@ class UserServiceImplTest {
 
     @Test
     fun givenValidUserUUID_whenDeleting_thenProvideSuccessfulResult() {
-        Mockito.`when`(repository.findById(user.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.findById(user.uuid!!)).thenReturn(Optional.of(user))
 
         val deletedUser = userService.deleteUser(user.uuid!!)
 
-        Mockito.verify(repository, Mockito.atLeastOnce()).deleteById(user.uuid!!)
+        Mockito.verify(userRepository, Mockito.atLeastOnce()).deleteById(user.uuid!!)
         assertEquals(deletedUser.code, ResultCode.DELETION_SUCCESS)
         assertNotNull(deletedUser.entity)
         assertTrue(deletedUser.entity!!)
@@ -757,7 +782,7 @@ class UserServiceImplTest {
 
         val deletedUser = userService.deleteUser(testUUID)
 
-        Mockito.verify(repository, Mockito.never()).deleteById(testUUID)
+        Mockito.verify(userRepository, Mockito.never()).deleteById(testUUID)
         assertEquals(deletedUser.code, ResultCode.DELETION_FAILURE)
         assertNull(deletedUser.entity)
         assertNotNull(deletedUser.errorMessage)
@@ -768,7 +793,7 @@ class UserServiceImplTest {
     fun givenAdminUserUUID_whenDeleting_thenProvideFailureResult() {
         val deletedUser = userService.deleteUser(adminUser.uuid!!)
 
-        Mockito.verify(repository, Mockito.never()).deleteById(adminUser.uuid!!)
+        Mockito.verify(userRepository, Mockito.never()).deleteById(adminUser.uuid!!)
         assertEquals(deletedUser.code, ResultCode.DELETION_FAILURE)
         assertNull(deletedUser.entity)
         assertNotNull(deletedUser.errorMessage)
@@ -780,12 +805,12 @@ class UserServiceImplTest {
 
     @Test
     fun givenValidUserUsername_whenDeleting_thenProvideSuccessfulResult() {
-        Mockito.`when`(repository.getUserByUsername(user.username!!)).thenReturn(Optional.of(user))
-        Mockito.`when`(repository.findById(user.uuid!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.getUserByUsername(user.username!!)).thenReturn(Optional.of(user))
+        Mockito.`when`(userRepository.findById(user.uuid!!)).thenReturn(Optional.of(user))
 
         val deletedUser = userService.deleteUser(user.username!!)
 
-        Mockito.verify(repository, Mockito.atLeastOnce()).deleteById(user.uuid!!)
+        Mockito.verify(userRepository, Mockito.atLeastOnce()).deleteById(user.uuid!!)
         assertEquals(deletedUser.code, ResultCode.DELETION_SUCCESS)
         assertNotNull(deletedUser.entity)
         assertTrue(deletedUser.entity!!)
@@ -797,7 +822,7 @@ class UserServiceImplTest {
 
         val deletedUser = userService.deleteUser(TestStrings.USER_USERNAME_INVALID)
 
-        Mockito.verify(repository, Mockito.never()).deleteById(testUUID)
+        Mockito.verify(userRepository, Mockito.never()).deleteById(testUUID)
         assertEquals(deletedUser.code, ResultCode.DELETION_FAILURE)
         assertNull(deletedUser.entity)
         assertNotNull(deletedUser.errorMessage)
@@ -808,12 +833,161 @@ class UserServiceImplTest {
     fun givenAdminUserUsername_whenDeleting_thenProvideFailureResult() {
         val deletedUser = userService.deleteUser(adminUser.username!!)
 
-        Mockito.verify(repository, Mockito.never()).deleteById(adminUser.uuid!!)
+        Mockito.verify(userRepository, Mockito.never()).deleteById(adminUser.uuid!!)
         assertEquals(deletedUser.code, ResultCode.DELETION_FAILURE)
         assertNull(deletedUser.entity)
         assertNotNull(deletedUser.errorMessage)
         assertEquals(deletedUser.errorMessage, UserService.ErrorMessages.CANNOT_DELETE_ADMIN_USER)
     }
+
+//endregion
+//endregion
+//endregion
+//region User Role Tests
+    //region Save Method Tests
+        //region Single Role Methods
+
+    @Test
+    fun givenValidUserRoleObject_whenSavingUserRole_thenProvideSuccessResultAndObject() {
+        val role = UserRole.Builder().roleName(userRoles[0].roleName!!).build()
+        Mockito.`when`(roleRepository.save(role)).thenReturn(userRoles[0])
+        val savedRole = userService.saveUserRole(role)
+
+        Mockito.verify(roleRepository, Mockito.atLeastOnce()).save(role)
+        assertEquals(savedRole.code, ResultCode.CREATION_SUCCESS)
+        assertNull(savedRole.errorMessage)
+        assertNotNull(savedRole.entity)
+        assertEquals(savedRole.entity?.id, userRoles[0].id)
+        assertEquals(savedRole.entity?.roleName, userRoles[0].roleName)
+    }
+
+    @Test
+    fun givenNullNameInUserRoleObject_whenSavingUserRole_thenProvideFailureResult() {
+        val role = UserRole.Builder().roleName(null).build()
+        val savedRole = userService.saveUserRole(role)
+
+        Mockito.verify(roleRepository, Mockito.never()).save(role)
+        assertEquals(savedRole.code, ResultCode.CREATION_FAILURE)
+        assertNull(savedRole.entity)
+        assertNotNull(savedRole.errorMessage)
+        assertEquals(savedRole.errorMessage, UserService.ErrorMessages.ROLE_NAME_NULL_OR_BLANK)
+    }
+
+    @Test
+    fun givenBlankNameInUserRoleObject_whenSavingUserRole_thenProvideFailureResult() {
+        val role = UserRole.Builder().roleName("").build()
+        val savedRole = userService.saveUserRole(role)
+
+        Mockito.verify(roleRepository, Mockito.never()).save(role)
+        assertEquals(savedRole.code, ResultCode.CREATION_FAILURE)
+        assertNull(savedRole.entity)
+        assertNotNull(savedRole.errorMessage)
+        assertEquals(savedRole.errorMessage, UserService.ErrorMessages.ROLE_NAME_NULL_OR_BLANK)
+    }
+
+    @Test
+    fun givenExistingNameInUserRoleObject_whenSavingUserRole_thenProvideFailureResult() {
+        val test = UserRole(roleName = userRoles[0].roleName)
+        val savedRole = userService.saveUserRole(test)
+
+        Mockito.verify(roleRepository, Mockito.never()).save(test)
+        assertEquals(savedRole.code, ResultCode.CREATION_FAILURE)
+        assertNull(savedRole.entity)
+        assertNotNull(savedRole.errorMessage)
+        assertEquals(savedRole.errorMessage, UserService.ErrorMessages.ROLE_NOT_UNIQUE)
+    }
+
+        //region Exception Methods
+// -------------------------------------------------------------------------
+
+    @Test
+    fun givenDataIntegrityViolationException_whenSavingUserRole_thenProvideFailureResult() {
+        val test = UserRole(roleName = TestStrings.TEST_ROLE_NAME)
+        Mockito.`when`(roleRepository.save(test)).thenThrow(DataIntegrityViolationException("Test Exception Triggered"))
+
+        val savedRole = userService.saveUserRole(test)
+
+        Mockito.verify(roleRepository,Mockito.atLeastOnce()).save(test)
+        assertEquals(savedRole.code, ResultCode.CREATION_FAILURE)
+        assertNull(savedRole.entity)
+        assertNotNull(savedRole.errorMessage)
+        assertEquals(savedRole.errorMessage, "Test Exception Triggered")
+    }
+
+    @Test
+    fun givenConcurrencyFailureException_whenSavingUserRole_thenProvideFailureResult() {
+        val test = UserRole(roleName = TestStrings.TEST_ROLE_NAME)
+        Mockito.`when`(roleRepository.save(test)).thenThrow(ConcurrencyFailureException("Test Exception Triggered"))
+
+        val savedRole = userService.saveUserRole(test)
+
+        Mockito.verify(roleRepository,Mockito.atLeastOnce()).save(test)
+        assertEquals(savedRole.code, ResultCode.CREATION_FAILURE)
+        assertNull(savedRole.entity)
+        assertNotNull(savedRole.errorMessage)
+        assertEquals(savedRole.errorMessage, "Test Exception Triggered")
+    }
+
+    @Test
+    fun givenOptimisticLockingFailureException_whenSavingUserRole_thenProvideFailureResult() {
+        val test = UserRole(roleName = TestStrings.TEST_ROLE_NAME)
+        Mockito.`when`(roleRepository.save(test)).thenThrow(OptimisticLockingFailureException("Test Exception Triggered"))
+
+        val savedRole = userService.saveUserRole(test)
+
+        Mockito.verify(roleRepository,Mockito.atLeastOnce()).save(test)
+        assertEquals(savedRole.code, ResultCode.CREATION_FAILURE)
+        assertNull(savedRole.entity)
+        assertNotNull(savedRole.errorMessage)
+        assertEquals(savedRole.errorMessage, "Test Exception Triggered")
+    }
+
+        //endregion
+
+        //endregion
+        //region Single Role Name Methods
+// -------------------------------------------------------------------------
+
+    @Test
+    fun givenValidRoleNameInUserRoleObject_whenSavingUserRole_thenProvideSuccessResultAndObject() {
+        Mockito.`when`(roleRepository.save(UserRole(roleName = TestStrings.TEST_ROLE_NAME))).thenReturn(testRole)
+        val savedRole = userService.saveUserRole(TestStrings.TEST_ROLE_NAME)
+
+        Mockito.verify(roleRepository, Mockito.atLeastOnce()).save(UserRole(roleName = TestStrings.TEST_ROLE_NAME))
+        assertEquals(savedRole.code, ResultCode.CREATION_SUCCESS)
+        assertNull(savedRole.errorMessage)
+        assertNotNull(savedRole.entity)
+        assertEquals(savedRole.entity?.id, testRole.id)
+        assertEquals(savedRole.entity?.roleName, testRole.roleName)
+    }
+
+    @Test
+    fun givenNullRoleNameInUserRoleObject_whenSavingUserRole_thenProvideFailureResult() {
+        val savedRole = userService.saveUserRole(UserRole(roleName = null))
+
+        Mockito.verify(roleRepository, Mockito.never()).save(UserRole(roleName = null))
+        assertEquals(savedRole.code, ResultCode.CREATION_FAILURE)
+        assertNull(savedRole.entity)
+        assertNotNull(savedRole.errorMessage)
+        assertEquals(savedRole.errorMessage, UserService.ErrorMessages.ROLE_NAME_NULL_OR_BLANK)
+    }
+
+    @Test
+    fun givenBlankRoleNameInUserRoleObject_whenSavingUserRole_thenProvideFailureResult() {
+        val savedRole = userService.saveUserRole(UserRole(roleName = ""))
+
+        Mockito.verify(roleRepository, Mockito.never()).save(UserRole(roleName = ""))
+        assertEquals(savedRole.code, ResultCode.CREATION_FAILURE)
+        assertNull(savedRole.entity)
+        assertNotNull(savedRole.errorMessage)
+        assertEquals(savedRole.errorMessage, UserService.ErrorMessages.ROLE_NAME_NULL_OR_BLANK)
+    }
+
+        //endregion
+    //endregion
+//region Get Method Tests
+// -------------------------------------------------------------------------
+
 
 //endregion
 //endregion

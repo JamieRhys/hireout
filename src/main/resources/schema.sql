@@ -6,3 +6,8 @@ CREATE TABLE IF NOT EXISTS table_users(
     last_name VARCHAR NOT NULL,
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE
 );
+
+CREATE TABLE IF NOT EXISTS table_user_roles(
+    id INT PRIMARY KEY UNIQUE,
+    role_name VARCHAR UNIQUE
+);
