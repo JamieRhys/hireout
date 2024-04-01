@@ -378,11 +378,26 @@ class UserServiceImpl(
 
     override fun saveUserRole(roleName: String): DatabaseResult<UserRole> = saveUserRole(UserRole(roleName = roleName))
 
-    override fun saveUserRoles(roles: List<UserRole>): DatabaseResult<List<UserRole>> {
-        TODO("Not yet implemented")
+    override fun saveUserRoles(roles: List<UserRole>): List<DatabaseResult<UserRole>> {
+        if(roles.isEmpty()) {
+            return listOf(
+                DatabaseResult(
+                    code = ResultCode.CREATION_FAILURE,
+                    errorMessage = UserService.ErrorMessages.NO_ROLES_TO_SAVE_IN_LIST
+                )
+            )
+        }
+
+        val savedRoles: MutableList<DatabaseResult<UserRole>> = mutableListOf()
+
+        roles.forEach { role ->
+            savedRoles.add(saveUserRole(role))
+        }
+
+        return savedRoles
     }
 
-    override fun saveUserRolesByName(roles: List<String>): DatabaseResult<List<UserRole>> {
+    override fun saveUserRolesByName(roles: List<String>): List<DatabaseResult<UserRole>> {
         TODO("Not yet implemented")
     }
 

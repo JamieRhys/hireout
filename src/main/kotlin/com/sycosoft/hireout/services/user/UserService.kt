@@ -50,9 +50,9 @@ interface UserService {
 
     fun saveUserRole(roleName: String): DatabaseResult<UserRole>
 
-    fun saveUserRoles(roles: List<UserRole>): DatabaseResult<List<UserRole>>
+    fun saveUserRoles(roles: List<UserRole>): List<DatabaseResult<UserRole>>
 
-    fun saveUserRolesByName(roles: List<String>): DatabaseResult<List<UserRole>>
+    fun saveUserRolesByName(roles: List<String>): List<DatabaseResult<UserRole>>
 
     fun getUserRole(id: Int): DatabaseResult<UserRole>
 
@@ -85,6 +85,7 @@ interface UserService {
             const val ROLE_NOT_FOUND_ID: String = "Role not found with ID of "
             const val ROLE_NOT_FOUND_NAME: String = "Role not found with name of "
             const val ROLE_NOT_UNIQUE: String = "Role name already being used. Please choose another."
+            const val NO_ROLES_TO_SAVE_IN_LIST = "No roles found to save within provided list."
         }
     }
 }

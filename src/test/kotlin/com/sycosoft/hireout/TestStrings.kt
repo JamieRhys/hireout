@@ -15,5 +15,8 @@ class TestStrings {
         const val USER_PASSWORD_VALID_UPDATE: String = "password321"
 
         const val TEST_ROLE_NAME: String = "ROLE_TEST"
+        const val TEST_ROLE_NAME2: String = "ROLE_TEST2"
+        const val TEST_ROLE_NAME3: String = "ROLE_TEST3"
+        const val TEST_ROLE_NAME4: String = "ROLE_TEST4"
     }
 }
