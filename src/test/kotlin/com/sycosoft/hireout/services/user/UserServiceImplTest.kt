@@ -1099,6 +1099,97 @@ class UserServiceImplTest {
     }
 
         //endregion
+        //region Multi Role Name Methods
+// -------------------------------------------------------------------------
+
+    @Test
+    fun givenMultipleValidRoleNames_whenSavingUserRoles_thenProvideSuccessResultAndObjects() {
+        val roles: List<String> = listOf(
+            TestStrings.TEST_ROLE_NAME,
+            TestStrings.TEST_ROLE_NAME2,
+            TestStrings.TEST_ROLE_NAME3,
+            TestStrings.TEST_ROLE_NAME4
+        )
+
+        roles.forEachIndexed { index, role ->
+            Mockito.`when`(roleRepository.save(UserRole(roleName = role))).thenReturn(UserRole(id = index + 1, roleName = role))
+        }
+
+        val savedRoles = userService.saveUserRolesByName(roles)
+
+        savedRoles.forEachIndexed { index, role ->
+            Mockito.verify(roleRepository, Mockito.atLeastOnce()).save(UserRole(roleName = roles[index]))
+            assertEquals(role.code, ResultCode.CREATION_SUCCESS)
+            assertNull(role.errorMessage)
+            assertNotNull(role.entity)
+            assertEquals(role.entity?.id, index + 1)
+            assertEquals(role.entity?.roleName, roles[index])
+        }
+    }
+
+    @Test
+    fun givenEmptyListOfUserRoleNames_whenSavingUserRoles_thenProvideFailureResult() {
+        val roles: List<String> = listOf()
+
+        val savedRoles = userService.saveUserRolesByName(roles)
+
+        Mockito.verify(roleRepository, Mockito.never()).save(UserRole(roleName = ""))
+        assertEquals(savedRoles[0].code, ResultCode.CREATION_FAILURE)
+        assertNull(savedRoles[0].entity)
+        assertNotNull(savedRoles[0].errorMessage)
+        assertEquals(savedRoles[0].errorMessage, UserService.ErrorMessages.NO_ROLES_TO_SAVE_IN_LIST)
+    }
+
+    @Test
+    fun givenMultipleBlankRoleNames_whenSavingUserRoles_thenProvideFailureResult() {
+        val roles: List<String> = listOf(
+            "",
+            "",
+            "",
+            ""
+        )
+
+        roles.forEachIndexed { index, role ->
+            Mockito.`when`(roleRepository.save(UserRole(roleName = role))).thenReturn(UserRole(id = index + 1, role))
+        }
+
+        val savedRoles = userService.saveUserRolesByName(roles)
+
+        savedRoles.forEachIndexed { index, role ->
+            Mockito.verify(roleRepository, Mockito.never()).save(UserRole(roleName = roles[index]))
+            assertEquals(role.code, ResultCode.CREATION_FAILURE)
+            assertNull(role.entity)
+            assertNotNull(role.errorMessage)
+            assertEquals(role.errorMessage, UserService.ErrorMessages.ROLE_NAME_NULL_OR_BLANK)
+        }
+    }
+
+    @Test
+    fun givenTakenUniqueRoleName_whenSavingUserRoles_thenProvideFailureResult() {
+        val roles = listOf(
+            TestStrings.TEST_ROLE_NAME,
+            userRoles[0].roleName!!
+        )
+
+        Mockito.`when`(roleRepository.save(UserRole(roleName = roles[0]))).thenReturn(testRole)
+
+        val savedRoles = userService.saveUserRolesByName(roles = roles)
+
+        Mockito.verify(roleRepository, Mockito.atLeastOnce()).save(UserRole(roleName = roles[0]))
+        assertEquals(savedRoles[0].code, ResultCode.CREATION_SUCCESS)
+        assertNull(savedRoles[0].errorMessage)
+        assertNotNull(savedRoles[0].entity)
+        assertEquals(savedRoles[0].entity?.id, testRole.id)
+        assertEquals(savedRoles[0].entity?.roleName, testRole.roleName)
+
+        Mockito.verify(roleRepository, Mockito.never()).save(UserRole(roleName = roles[1]))
+        assertEquals(savedRoles[1].code, ResultCode.CREATION_FAILURE)
+        assertNull(savedRoles[1].entity)
+        assertNotNull(savedRoles[1].errorMessage)
+        assertEquals(savedRoles[1].errorMessage, UserService.ErrorMessages.ROLE_NOT_UNIQUE)
+    }
+
+    //endregion
     //endregion
 //region Get Method Tests
 // -------------------------------------------------------------------------
