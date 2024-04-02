@@ -418,7 +418,26 @@ class UserServiceImpl(
     }
 
     override fun getUserRole(id: Int): DatabaseResult<UserRole> {
-        TODO("Not yet implemented")
+        return try {
+            val found = roleRepository.findById(id)
+
+            if(!found.isPresent) {
+                return DatabaseResult(
+                    code = ResultCode.FETCH_FAILURE,
+                    errorMessage = UserService.ErrorMessages.ROLE_NOT_FOUND_ID + id
+                )
+            }
+
+            DatabaseResult(
+                code = ResultCode.FETCH_SUCCESS,
+                entity = found.get()
+            )
+        } catch(exception: Exception) {
+            DatabaseResult(
+                code = ResultCode.FETCH_FAILURE,
+                errorMessage = exception.message.toString()
+            )
+        }
     }
 
     override fun getUserRole(roleName: String): DatabaseResult<UserRole> {

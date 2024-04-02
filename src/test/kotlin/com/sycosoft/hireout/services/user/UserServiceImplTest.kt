@@ -1193,8 +1193,33 @@ class UserServiceImplTest {
     //endregion
 //region Get Method Tests
 // -------------------------------------------------------------------------
+    //region ID
+// -------------------------------------------------------------------------
 
+    @Test
+    fun givenValidUserRoleID_whenGettingUserRole_thenProvideSuccessResultAndObject() {
+        val found = userService.getUserRole(1)
 
+        Mockito.verify(roleRepository, Mockito.atLeastOnce()).findById(1)
+        assertEquals(found.code, ResultCode.FETCH_SUCCESS)
+        assertNull(found.errorMessage)
+        assertNotNull(found.entity)
+        assertEquals(found.entity?.id, userRoles[0].id)
+        assertEquals(found.entity?.roleName, userRoles[0].roleName)
+    }
+
+    @Test
+    fun givenInvalidUserRoleID_whenGettingUserRole_thenProvideFailureResult() {
+        val found = userService.getUserRole(25_000_000)
+
+        Mockito.verify(roleRepository, Mockito.atLeastOnce()).findById(25_000_000)
+        assertEquals(found.code, ResultCode.FETCH_FAILURE)
+        assertNull(found.entity)
+        assertNotNull(found.errorMessage)
+        assertEquals(found.errorMessage, UserService.ErrorMessages.ROLE_NOT_FOUND_ID + 25_000_000)
+    }
+
+    //endregion
 //endregion
 //endregion
 }

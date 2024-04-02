@@ -11,7 +11,6 @@ data class UserRole(
     val id: Int? = null,
 
     @Column(name = "role_name")
-    @NotNull(message = "Please provide a name for this role")
     val roleName: String? = null
 ) {
 
